@@ -100,6 +100,7 @@ add_library(librw::librw ALIAS librw)
 target_include_directories(librw
     INTERFACE
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:${LIBRW_INSTALL_INCLUDEDIR}>
 )
 
 target_compile_definitions(librw
@@ -148,13 +149,6 @@ set_target_properties(librw
 )
 
 if(LIBRW_PLATFORM_GL3)
-    set(OpenGL_GL_PREFERENCE GLVND)
-    find_package(OpenGL REQUIRED)
-
-    target_link_libraries(librw
-        PUBLIC
-            OpenGL::GL
-    )
     if (LIBRW_GL3_GFXLIB STREQUAL "GLFW")
         find_package(glfw3 REQUIRED)
         target_link_libraries(librw
@@ -168,27 +162,37 @@ if(LIBRW_PLATFORM_GL3)
             PUBLIC
                 SDL2::SDL2
         )
-        if(TARGET SDL2::SDL2main)
-            target_link_libraries(librw
-                PUBLIC
-                    SDL2::SDL2main
-            )
-        endif()
+    endif()
+
+    set(OpenGL_GL_PREFERENCE GLVND)
+    find_package(OpenGL)
+    if(TARGET OpenGL::OpenGL)
+        target_link_libraries(librw
+            PRIVATE
+                OpenGL::OpenGL
+        )
+    elseif(TARGET OpenGL::EGL)
+        target_link_libraries(librw
+            PRIVATE
+                OpenGL::EGL
+        )
+    elseif(TARGET OpenGL::GL)
+        target_link_libraries(librw
+            PRIVATE
+                OpenGL::GL
+        )
+    else()
+        message(FATAL_ERROR "find_package(OpenGL) failed.")
     endif()
 elseif(LIBRW_PLATFORM_D3D9)
     target_link_libraries(librw
-        PUBLIC
+        PRIVATE
             d3d9
             xinput
     )
 endif()
 
 if(LIBRW_INSTALL)
-    target_include_directories(librw
-        INTERFACE
-            $<INSTALL_INTERFACE:${LIBRW_INSTALL_INCLUDEDIR}>
-    )
-
     install(
         FILES
             "${PROJECT_SOURCE_DIR}/args.h"

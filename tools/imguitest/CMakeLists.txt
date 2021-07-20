@@ -4,8 +4,8 @@ add_executable(imguitest WIN32
 
 target_link_libraries(imguitest
     PUBLIC
-        librw
-        librw_skeleton_imgui
+        librw::skeleton
+        librw::librw
 )
 
 if(LIBRW_INSTALL)
@@ -13,3 +13,5 @@ if(LIBRW_INSTALL)
         RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
     )
 endif()
+
+librw_platform_target(imguitest INSTALL)

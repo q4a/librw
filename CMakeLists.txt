@@ -1,12 +1,28 @@
 cmake_minimum_required(VERSION 3.8)
-project(librw C CXX)
+project(librw
+    VERSION 0.0.1
+    LANGUAGES C CXX
+)
+set(librw_AUTHOR aap)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 if(WIN32)
     set(LIBRW_PLATFORMS "NULL" "GL3" "D3D9")
+    set(LIBRW_PLATFORM_GL3_REQUIRES_OPENGL ON)
+elseif(NINTENDO_SWITCH)
+    set(LIBRW_PLATFORMS "NULL" "GL3")
+    set(LIBRW_PLATFORM_GL3_REQUIRES_OPENGL OFF)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/nx")
+    include(NXFunctions)
+elseif(PS2)
+    set(LIBRW_PLATFORMS "NULL" "PS2")
+    set(LIBRW_PLATFORM_GL3_REQUIRES_OPENGL OFF)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/ps2")
+    include(PS2Functions)
 else()
-    set(LIBRW_PLATFORMS "NULL" "GL3" "PS2")
+    set(LIBRW_PLATFORMS "NULL" "GL3")
+    set(LIBRW_PLATFORM_GL3_REQUIRES_OPENGL ON)
 endif()
 set(LIBRW_PLATFORM "NULL" CACHE STRING "Platform")
 set_property(CACHE LIBRW_PLATFORM PROPERTY STRINGS ${LIBRW_PLATFORMS})
@@ -30,8 +46,16 @@ if(LIBRW_PLATFORM_PS2)
     enable_language(DSM)
 endif()
 
+if(NOT COMMAND librw_platform_target)
+    function(librw_platform_target)
+    endfunction()
+endif()
+
+include(CMakeDependentOption)
+
 option(LIBRW_TOOLS "Build librw tools" ON)
 option(LIBRW_INSTALL "Install librw files" OFF)
+cmake_dependent_option(LIBRW_EXAMPLES "Build librw examples" ON "NOT LIBRW_PLATFORM_PS2;NOT LIBRW_PLATFORM_NULL" OFF)
 
 if(LIBRW_INSTALL)
     include(GNUInstallDirs)
@@ -40,11 +64,11 @@ endif()
 
 add_subdirectory(src)
 
-if(LIBRW_TOOLS)
+if(NOT LIBRW_PLATFORM_PS2 AND NOT LIBRW_PLATFORM_NULL)
     add_subdirectory(skeleton)
-
-    add_subdirectory(tools)
 endif()
+
+add_subdirectory(tools)
 
 if(LIBRW_INSTALL)
     include(CMakePackageConfigHelpers)
@@ -59,6 +83,13 @@ if(LIBRW_INSTALL)
         EXPORT librw-targets NAMESPACE librw::
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
     )
+
+    if(LIBRW_GL3_GFXLIB STREQUAL "SDL2")
+        install(
+            FILES "${CMAKE_CURRENT_LIST_DIR}/cmake/FindSDL2.cmake"
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake"
+        )
+    endif()
 
     string(REPLACE "." ";" cmake_c_compiler_version_list "${CMAKE_C_COMPILER_VERSION}")
     list(GET cmake_c_compiler_version_list 0 cmake_c_compiler_version_major)
@@ -100,6 +131,8 @@ if(LIBRW_INSTALL)
             set(os "-apple")
         elseif(UNIX)
             set(os "-linux")
+        elseif(NINTENDO_SWITCH)
+            set(os "-switch")
         else()
             set(compiler "-UNK")
             message(WARNING "Unknown os. Created cpack package will be wrong. (override using cpack -P)")

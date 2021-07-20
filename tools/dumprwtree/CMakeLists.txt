@@ -3,8 +3,8 @@ add_executable(dumprwtree
 )
 
 target_link_libraries(dumprwtree
-    PUBLIC
-        librw
+    PRIVATE
+        librw::librw
 )
 
 if(LIBRW_INSTALL)
@@ -12,3 +12,5 @@ if(LIBRW_INSTALL)
         RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
     )
 endif()
+
+librw_platform_target(dumprwtree INSTALL)

@@ -111,6 +111,8 @@ Draw(float timeDelta)
 	ImGui::EndFrame();
 	ImGui::Render();
 
+	ImGui_ImplRW_RenderDrawLists(ImGui::GetDrawData());
+
 	Scene.camera->endUpdate();
 	Scene.camera->showRaster(0);
 }
